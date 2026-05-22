@@ -54,10 +54,10 @@ def get_google_ads_client():
         client_id=cid,
         client_secret=csecret,
     )
-    return GoogleAdsClient(
+       return GoogleAdsClient(
         credentials=creds,
         developer_token=os.environ["GOOGLE_ADS_DEVELOPER_TOKEN"],
-        login_customer_id=os.environ["GOOGLE_ADS_CUSTOMER_ID"],
+        login_customer_id="1121601137",
         use_proto_plus=True,
     )
 
