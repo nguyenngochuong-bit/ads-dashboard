@@ -31,10 +31,8 @@ def get_google_ads_data(customer_id, days):
         }
         client = GoogleAdsClient.load_from_dict(credentials)
         ga_service = client.get_service("GoogleAdsService")
-        
         end_date = datetime.today().strftime("%Y-%m-%d")
         start_date = (datetime.today() - timedelta(days=days)).strftime("%Y-%m-%d")
-        
         query = f"""
             SELECT
                 segments.date,
@@ -58,6 +56,7 @@ def get_google_ads_data(customer_id, days):
             })
         return pd.DataFrame(rows) if rows else None
     except Exception as e:
+        st.error(f"Lỗi Google Ads API (data): {str(e)}")
         return None
 
 def get_google_ads_campaigns(customer_id):
@@ -102,6 +101,7 @@ def get_google_ads_campaigns(customer_id):
             })
         return pd.DataFrame(rows) if rows else None
     except Exception as e:
+        st.error(f"Lỗi Google Ads API (campaigns): {str(e)}")
         return None
 
 def gen_mock_data(days):
@@ -126,7 +126,6 @@ def gen_mock_campaigns():
         "ROAS": ["6.2x", "4.8x", "3.1x", "7.9x", "2.3x"],
     })
 
-# Sidebar
 with st.sidebar:
     st.markdown("## 📊 Ads Reporter")
     st.markdown("---")
@@ -140,7 +139,6 @@ with st.sidebar:
     st.markdown("demo@agency.com")
     st.button("Đăng xuất")
 
-# Main
 st.title(f"📈 {platform} Dashboard")
 st.caption("Tổng quan hiệu suất quảng cáo")
 
@@ -149,7 +147,6 @@ date_option = st.radio("", ["Hôm nay", "Hôm qua", "Tuần này", "Tháng này"
 days_map = {"Hôm nay": 1, "Hôm qua": 1, "Tuần này": 7, "Tháng này": 30, "Quý này": 90}
 days = days_map[date_option]
 
-# Load data
 if demo_mode or platform != "Google Ads":
     df = gen_mock_data(days)
     camp_df = gen_mock_campaigns()
@@ -163,7 +160,6 @@ else:
         df = gen_mock_data(days)
         camp_df = gen_mock_campaigns()
 
-# KPIs
 total_cost = df["Chi phí"].sum()
 total_clicks = df["Clicks"].sum()
 total_impressions = df["Impressions"].sum()
@@ -194,7 +190,6 @@ for col, (label, value, delta, up) in zip(cols, kpis):
     </div>""", unsafe_allow_html=True)
 
 st.markdown("---")
-
 col1, col2 = st.columns([2, 1])
 with col1:
     st.subheader("Hiệu suất gần nhất")
@@ -233,7 +228,8 @@ if st.button("🤖 Phân tích AI", type="primary"):
     st.success("""
     **Tóm tắt AI:**
     - ROAS 5.58x vượt benchmark ngành (4x) → hiệu suất tốt
-    - CPC giảm 5.2% → tối ưu đấu thầu đang phát huy tác dụng  
+    - CPC giảm 5.2% → tối ưu đấu thầu đang phát huy tác dụng
     - Campaign Shopping All có ROAS cao nhất → nên tăng ngân sách
     - YouTube Awareness có ROAS thấp → xem xét điều chỉnh creative
     """)
+
