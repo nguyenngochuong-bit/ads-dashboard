@@ -19,17 +19,20 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+def build_credentials():
+    return {
+        "developer_token": os.environ["GOOGLE_ADS_DEVELOPER_TOKEN"],
+        "client_id": os.environ["GOOGLE_ADS_CLIENT_ID"],
+        "client_secret": os.environ["GOOGLE_ADS_CLIENT_SECRET"],
+        "refresh_token": os.environ["GOOGLE_ADS_REFRESH_TOKEN"],
+        "login_customer_id": os.environ["GOOGLE_ADS_CUSTOMER_ID"],
+        "use_proto_plus": True,
+    }
+
 def get_google_ads_data(customer_id, days):
     try:
         from google.ads.googleads.client import GoogleAdsClient
-        credentials = {
-            "developer_token": os.environ["GOOGLE_ADS_DEVELOPER_TOKEN"],
-            "client_id": os.environ["GOOGLE_ADS_CLIENT_ID"],
-            "client_secret": os.environ["GOOGLE_ADS_CLIENT_SECRET"],
-            "refresh_token": os.environ["GOOGLE_ADS_REFRESH_TOKEN"],
-            "use_proto_plus": True,
-        }
-        client = GoogleAdsClient.load_from_dict(credentials)
+        client = GoogleAdsClient.load_from_dict(build_credentials())
         ga_service = client.get_service("GoogleAdsService")
         end_date = datetime.today().strftime("%Y-%m-%d")
         start_date = (datetime.today() - timedelta(days=days)).strftime("%Y-%m-%d")
@@ -62,14 +65,7 @@ def get_google_ads_data(customer_id, days):
 def get_google_ads_campaigns(customer_id):
     try:
         from google.ads.googleads.client import GoogleAdsClient
-        credentials = {
-            "developer_token": os.environ["GOOGLE_ADS_DEVELOPER_TOKEN"],
-            "client_id": os.environ["GOOGLE_ADS_CLIENT_ID"],
-            "client_secret": os.environ["GOOGLE_ADS_CLIENT_SECRET"],
-            "refresh_token": os.environ["GOOGLE_ADS_REFRESH_TOKEN"],
-            "use_proto_plus": True,
-        }
-        client = GoogleAdsClient.load_from_dict(credentials)
+        client = GoogleAdsClient.load_from_dict(build_credentials())
         ga_service = client.get_service("GoogleAdsService")
         query = """
             SELECT
@@ -232,4 +228,3 @@ if st.button("🤖 Phân tích AI", type="primary"):
     - Campaign Shopping All có ROAS cao nhất → nên tăng ngân sách
     - YouTube Awareness có ROAS thấp → xem xét điều chỉnh creative
     """)
-
