@@ -19,6 +19,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+
 def get_google_ads_client(login_cid=None):
     import requests
     from google.ads.googleads.client import GoogleAdsClient
@@ -62,7 +63,8 @@ def get_google_ads_client(login_cid=None):
 def get_google_ads_data(customer_id, days):
     try:
         mcc_id = os.environ.get("GOOGLE_ADS_CUSTOMER_ID", "")
-        client = get_google_ads_client(login_cid=mcc_id if mcc_id != customer_id else None)
+        login_cid = mcc_id if mcc_id and mcc_id != customer_id else None
+        client = get_google_ads_client(login_cid=login_cid)
         ga_service = client.get_service("GoogleAdsService")
         end_date   = datetime.today().strftime("%Y-%m-%d")
         start_date = (datetime.today() - timedelta(days=days)).strftime("%Y-%m-%d")
@@ -92,7 +94,8 @@ def get_google_ads_data(customer_id, days):
 def get_google_ads_campaigns(customer_id):
     try:
         mcc_id = os.environ.get("GOOGLE_ADS_CUSTOMER_ID", "")
-        client = get_google_ads_client(login_cid=mcc_id if mcc_id != customer_id else None)
+        login_cid = mcc_id if mcc_id and mcc_id != customer_id else None
+        client = get_google_ads_client(login_cid=login_cid)
         ga_service = client.get_service("GoogleAdsService")
         query = """
             SELECT campaign.name, metrics.cost_micros, metrics.clicks,
@@ -137,7 +140,8 @@ def get_mock_data(days):
 
 def get_mock_campaigns():
     np.random.seed(42)
-    names = ["Brand Search", "Performance Max", "Display Remarketing", "Video Awareness", "Shopping"]
+    names = ["Brand Search", "Performance Max", "Display Remarketing",
+             "Video Awareness", "Shopping"]
     costs  = np.random.uniform(10_000_000, 80_000_000, 5)
     clicks = np.random.randint(1000, 15000, 5)
     convs  = np.random.uniform(10, 200, 5)
@@ -156,6 +160,7 @@ def get_mock_campaigns():
     return pd.DataFrame(rows)
 
 
+# ── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("## 📊 Ads Reporter")
     st.markdown("---")
@@ -168,10 +173,23 @@ with st.sidebar:
     st.markdown("---")
     use_demo = st.toggle("Demo data", value=False)
     st.markdown("---")
+
+    if st.button("🔍 Test API access"):
+        try:
+            c = get_google_ads_client(login_cid=None)
+            cs = c.get_service("CustomerService")
+            res = cs.list_accessible_customers()
+            ids = [r.split("/")[1] for r in res.resource_names]
+            st.success("Accounts: " + ", ".join(ids))
+        except Exception as e:
+            st.error(str(e)[:400])
+
+    st.markdown("---")
     st.markdown("demo@agency.com")
     st.button("Đăng xuất")
 
 
+# ── Main ─────────────────────────────────────────────────────────────────────
 days_map = {"Hôm nay": 1, "Hôm qua": 2, "Tuần này": 7, "Tháng này": 30, "Quý này": 90}
 
 st.markdown("## 📈 Google Ads Dashboard")
@@ -195,6 +213,7 @@ else:
         df           = get_mock_data(days)
         df_campaigns = get_mock_campaigns()
 
+# ── Metrics ───────────────────────────────────────────────────────────────────
 total_cost   = df["Chi phí"].sum()
 total_clicks = int(df["Clicks"].sum())
 total_impr   = int(df["Impressions"].sum())
@@ -204,13 +223,13 @@ cpc  = total_cost / total_clicks       if total_clicks > 0 else 0
 roas = (total_conv * 500_000) / total_cost if total_cost > 0 else 0
 
 metrics = [
-    ("Chi phí",      f"{total_cost/1_000_000:.1f}M đ", "+12.4%", True),
-    ("Clicks",       f"{total_clicks:,}",               "+8.2%",  True),
-    ("Impressions",  f"{total_impr/1000:.0f}K",         "+15.7%", True),
-    ("Chuyển đổi",  f"{total_conv:,.0f}",               "+4.1%",  True),
-    ("CTR",          f"{ctr:.2f}%",                     "+0.3%",  True),
-    ("CPC",          f"{cpc:,.0f}đ",                    "-5.2%",  False),
-    ("ROAS",         f"{roas:.2f}x",                    "+18.3%", True),
+    ("Chi phí",     f"{total_cost/1_000_000:.1f}M đ", "+12.4%", True),
+    ("Clicks",      f"{total_clicks:,}",               "+8.2%",  True),
+    ("Impressions", f"{total_impr/1000:.0f}K",         "+15.7%", True),
+    ("Chuyển đổi", f"{total_conv:,.0f}",               "+4.1%",  True),
+    ("CTR",         f"{ctr:.2f}%",                     "+0.3%",  True),
+    ("CPC",         f"{cpc:,.0f}đ",                    "-5.2%",  False),
+    ("ROAS",        f"{roas:.2f}x",                    "+18.3%", True),
 ]
 
 cols = st.columns(7)
@@ -227,6 +246,7 @@ for col, (label, value, delta, up) in zip(cols, metrics):
 
 st.markdown("<br>", unsafe_allow_html=True)
 
+# ── Charts ────────────────────────────────────────────────────────────────────
 col_l, col_r = st.columns(2)
 
 with col_l:
@@ -235,7 +255,8 @@ with col_l:
     fig.add_trace(go.Bar(x=df["Ngày"], y=df["Chi phí"],
                          name="Chi phí", marker_color="#4e79a7", opacity=0.85))
     fig.add_trace(go.Scatter(x=df["Ngày"], y=df["Clicks"] * 5000,
-                             name="Clicks", line=dict(color="#f28e2b", width=2), yaxis="y2"))
+                             name="Clicks", line=dict(color="#f28e2b", width=2),
+                             yaxis="y2"))
     fig.update_layout(
         paper_bgcolor="#1e2139", plot_bgcolor="#1e2139",
         font=dict(color="white", size=11),
@@ -259,6 +280,7 @@ with col_r:
     )
     st.plotly_chart(fig2, use_container_width=True)
 
+# ── Campaign table ────────────────────────────────────────────────────────────
 st.markdown("### Top chiến dịch (30 ngày gần nhất)")
 if df_campaigns is not None and not df_campaigns.empty:
     st.dataframe(df_campaigns, use_container_width=True, hide_index=True)
