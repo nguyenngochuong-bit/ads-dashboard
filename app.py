@@ -62,9 +62,7 @@ def get_google_ads_client(login_cid=None):
 
 def get_google_ads_data(customer_id, days):
     try:
-        mcc_id = os.environ.get("GOOGLE_ADS_CUSTOMER_ID", "")
-        login_cid = mcc_id if mcc_id and mcc_id != customer_id else None
-        client = get_google_ads_client(login_cid=login_cid)
+        client = get_google_ads_client(login_cid=None)
         ga_service = client.get_service("GoogleAdsService")
         end_date   = datetime.today().strftime("%Y-%m-%d")
         start_date = (datetime.today() - timedelta(days=days)).strftime("%Y-%m-%d")
@@ -93,9 +91,7 @@ def get_google_ads_data(customer_id, days):
 
 def get_google_ads_campaigns(customer_id):
     try:
-        mcc_id = os.environ.get("GOOGLE_ADS_CUSTOMER_ID", "")
-        login_cid = mcc_id if mcc_id and mcc_id != customer_id else None
-        client = get_google_ads_client(login_cid=login_cid)
+        client = get_google_ads_client(login_cid=None)
         ga_service = client.get_service("GoogleAdsService")
         query = """
             SELECT campaign.name, metrics.cost_micros, metrics.clicks,
@@ -160,7 +156,6 @@ def get_mock_campaigns():
     return pd.DataFrame(rows)
 
 
-# ── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("## 📊 Ads Reporter")
     st.markdown("---")
@@ -173,7 +168,6 @@ with st.sidebar:
     st.markdown("---")
     use_demo = st.toggle("Demo data", value=False)
     st.markdown("---")
-
     if st.button("🔍 Test API access"):
         try:
             c = get_google_ads_client(login_cid=None)
@@ -183,13 +177,11 @@ with st.sidebar:
             st.success("Accounts: " + ", ".join(ids))
         except Exception as e:
             st.error(str(e)[:400])
-
     st.markdown("---")
     st.markdown("demo@agency.com")
     st.button("Đăng xuất")
 
 
-# ── Main ─────────────────────────────────────────────────────────────────────
 days_map = {"Hôm nay": 1, "Hôm qua": 2, "Tuần này": 7, "Tháng này": 30, "Quý này": 90}
 
 st.markdown("## 📈 Google Ads Dashboard")
@@ -213,7 +205,6 @@ else:
         df           = get_mock_data(days)
         df_campaigns = get_mock_campaigns()
 
-# ── Metrics ───────────────────────────────────────────────────────────────────
 total_cost   = df["Chi phí"].sum()
 total_clicks = int(df["Clicks"].sum())
 total_impr   = int(df["Impressions"].sum())
@@ -246,7 +237,6 @@ for col, (label, value, delta, up) in zip(cols, metrics):
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# ── Charts ────────────────────────────────────────────────────────────────────
 col_l, col_r = st.columns(2)
 
 with col_l:
@@ -280,7 +270,6 @@ with col_r:
     )
     st.plotly_chart(fig2, use_container_width=True)
 
-# ── Campaign table ────────────────────────────────────────────────────────────
 st.markdown("### Top chiến dịch (30 ngày gần nhất)")
 if df_campaigns is not None and not df_campaigns.empty:
     st.dataframe(df_campaigns, use_container_width=True, hide_index=True)
